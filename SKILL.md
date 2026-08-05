@@ -84,7 +84,24 @@ For each unit under test, aim to cover, roughly in this priority order:
 2. **Boundary/edge cases** — empty input, zero, negative numbers, max length, single-element
    collections, Unicode/special characters where relevant.
 3. **Error handling** — invalid input, expected exceptions/error returns, timeouts.
-4. **Regression case** — if step 3 turned up a bug-fix commit without a test.
+4. **Security-relevant boundary cases** — only for functions that touch a risky surface:
+   building a query/command/template from input, constructing a filesystem path from
+   input, or gating auth/access. For those specifically, add targeted tests for:
+   - Injection-style inputs (SQL/command/template strings) where input flows into a
+     query, command, or template.
+   - Path traversal inputs (`../`, absolute paths) where a user-influenced path touches
+     the filesystem.
+   - Auth-bypass-shaped inputs (empty/null tokens, malformed roles) where the function
+     gates access.
+
+   **Reachability gate:** only generate this tier if the function actually exercises one
+   of these risky patterns — do not add generic security tests to code with no such
+   surface (e.g. a pure currency-formatting function gets none of these). This keeps the
+   tier high-signal rather than padding, and mirrors how dedicated tools like Snyk use
+   reachability analysis to cut noise. This tier complements a real SAST/security
+   scanner — it is not a substitute for one, and should stay scoped to a small number of
+   sharp tests, not an exhaustive attack-surface sweep.
+5. **Regression case** — if step 3 turned up a bug-fix commit without a test.
 
 Skip low-value tests: trivial getters/setters, framework boilerplate, purely declarative
 config, or code that's about to be deleted/refactored per the user's stated plans. Flag
